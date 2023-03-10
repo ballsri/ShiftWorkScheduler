@@ -95,6 +95,7 @@ def genSchedule(df, month,monthStr, year):
 
     # save to excel
     header_format = workbook.add_format({'bold': True, 'font_size': 18, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#D9D9D9'})
+    col_format = workbook.add_format({ 'border': 1, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#80aaff'})
     subcell_format = workbook.add_format({'border': 1, 'align': 'center', 'valign': 'vcenter'})
     holiday_format = workbook.add_format({'border': 1, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#ffc34d'})
     weekend_format = workbook.add_format({'border': 1, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#88cc00'})
@@ -105,13 +106,13 @@ def genSchedule(df, month,monthStr, year):
     worksheet.merge_range(row,col,row,col+7, "ตารางเวร ประจำเดือน " + monthStr + " ปี พ.ศ."+ str(year+543), header_format)
     row += 1
     # write header
-    worksheet.write(row,col, "วันที่", subcell_format)
-    worksheet.write(row,col+1, "วัน", subcell_format)
-    worksheet.write(row,col+2, "ส่งหนังสือ", subcell_format)
-    worksheet.write(row,col+3, "เวรขับรถเย็น", subcell_format)
-    worksheet.write(row,col+4, "เวรขับรถวันหยุด", subcell_format)
-    worksheet.merge_range(row,col+5,row,col+6, "เวรกลางวัน", subcell_format)
-    worksheet.write(row,col+7, "เวรกลางคืน", subcell_format)
+    worksheet.write(row,col, "วันที่", col_format)
+    worksheet.write(row,col+1, "วัน", col_format)
+    worksheet.write(row,col+2, "ส่งหนังสือ", col_format)
+    worksheet.write(row,col+3, "เวรขับรถเย็น", col_format)
+    worksheet.write(row,col+4, "เวรขับรถวันหยุด", col_format)
+    worksheet.merge_range(row,col+5,row,col+6, "เวรกลางวัน", col_format)
+    worksheet.write(row,col+7, "เวรกลางคืน", col_format)
     row += 1
 
     for index, r in output.iterrows():
