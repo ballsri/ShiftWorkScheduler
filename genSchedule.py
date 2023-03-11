@@ -1,7 +1,6 @@
 import pandas as pd
 import xlsxwriter
 import datetime, calendar
-import numpy as np
 
 def genSchedule(df, month,monthStr, year):
 
@@ -10,88 +9,125 @@ def genSchedule(df, month,monthStr, year):
 
 
     # variables
-    holiday = pd.Series(df['วันที่หยุด'].values, index=df['วันหยุด'].values).to_dict()
-    holiday = {k: int(v) for k, v in holiday.items() if str(k) != 'nan'}   
-    drivers = df['คนขับ'].tolist()
-    drivers = [x for x in drivers if str(x) != 'nan']
-    replace_driver = df['คนขับทดแทน'].tolist()[0]
-    dayShifters =list(df[['หัวหน้าเวรกลางวัน', 'ลูกเวรกลางวัน']].itertuples(index=False, name=None))
-    nightShifters = df['เวรกลางคืน'].tolist()
-    nightShifters = [x for x in nightShifters if str(x) != 'nan']
+    try:
+        holiday = df.pivot(index='เดือนที่หยุด', columns='วันที่หยุด', values='วันหยุด')              
+        drivers = df['คนขับเย็น'].tolist()
+        drivers = [x for x in drivers if str(x) != 'nan']
+        replace_driver = df['คนขับทดแทน'].tolist()[0]
+        hDrivers = df['คนขับวันหยุด'].tolist()
+        hDrivers = [x for x in hDrivers if str(x) != 'nan']
+        dayShifters =list(df[['หัวหน้าเวรกลางวัน', 'ลูกเวรกลางวัน']].itertuples(index=False, name=None))
+        nightShifters = df['เวรกลางคืน'].tolist()
+        nightShifters = [x for x in nightShifters if str(x) != 'nan']
+    except:
+        return 2
 
-    # day of week
-    numDay = calendar.monthrange(year, month)[1]
-    days = [datetime.date(year, month, day) for day in range(1, numDay+1)]
-    dayOfWeek = [day.strftime('%A') for day in days]
+    numDay = pd.Timestamp(year, 12, 31).dayofyear
+    numMonth = calendar.monthrange(year, month)[1] +1
+    
+    days = []
+    
+    for m in range(1,12+1):
+        for i in range(1,calendar.monthrange(year, m)[1] +1):
+            days.append(datetime.date(year, m, i)) 
+
+        
+    dayNameInYear = [day.strftime('%A') for day in days]
     dayToThai = {'Monday': 'จันทร์', 'Tuesday': 'อังคาร', 'Wednesday': 'พุธ', 'Thursday': 'พฤหัสบดี', 'Friday': 'ศุกร์', 'Saturday': 'เสาร์', 'Sunday': 'อาทิตย์'}
-    dayOfWeek = [dayToThai[day] for day in dayOfWeek]
+    dayNameInYear = [dayToThai[day] for day in dayNameInYear]
     days = [day.strftime('%d') for day in days]
 
-    for k, v in holiday.items():
-        dayOfWeek[v-1] = dayOfWeek[v-1] + ' (' + k + ')'
+    for d, m in holiday.items():
+        # month is dataframe
+        for i, v in m.items():
+            if str(v) != 'nan':
+                dayInYear = pd.Timestamp(year, int(i), int(d)).dayofyear
+                dayNameInYear[dayInYear-1] = dayNameInYear[dayInYear-1] + ' (' + v + ')'
 
     # day of holiday
-    holidayIndex = [i for i, day in enumerate(dayOfWeek) if '(' in day or day == 'อาทิตย์' or day == 'เสาร์']
+    yearHolidayIndex = [i for i, day in enumerate(dayNameInYear) if '(' in day or day == 'อาทิตย์' or day == 'เสาร์']
 
-    # shuffle shifters
-    np.random.shuffle(drivers)
-    np.random.shuffle(dayShifters)
-    np.random.shuffle(nightShifters)
+    # Only keep the day in the month
+    numMonth = calendar.monthrange(year, month)[1]
+    numStartMonth = pd.Timestamp(year, month, 1).dayofyear
+    numEndMonth = pd.Timestamp(year, month, numMonth).dayofyear
+    dayNameInMonth = dayNameInYear[numStartMonth-1:numEndMonth]
+
+
+    ## CRITICAL PART ##
 
     # create schedule
-    dayShift = [""] * numDay
-    nightShift = [""] * numDay
-    holidayDriverShift = [""] * numDay
-    normDriverShift = [""] * numDay
-    bookShift = [""] * numDay
+    dayShift = [""] * numMonth
+    nightShift = [""] * numMonth
+    holidayDriverShift = [""] * numMonth
+    normDriverShift = [""] * numMonth
+    bookShift = [""] * numMonth
+
+    yearBookShift = [""] * numDay
+    yearNormDriverShift = [""] * numDay
+    yearHolidayDriverShift = [""] * numDay
+    yearDayShift = [""] * numDay
+    yearNightShift = [""] * numDay
 
     # assign day shift
     j = 0
-    for i in holidayIndex:
-        dayShift[i] = dayShifters[j]
+    for i in yearHolidayIndex:
+        yearDayShift[i] = dayShifters[j]
         j = (j+1) % len(dayShifters)
+    
+    dayShift = yearDayShift[numStartMonth-1:numEndMonth]
 
     # assign night shift
     j = 0
     for i in range(numDay):
-        nightShift[i] = nightShifters[j]
+        yearNightShift[i] = nightShifters[j]
         j = (j+1) % len(nightShifters)
+
+    nightShift = yearNightShift[numStartMonth-1:numEndMonth]
 
     # assign holiday driver shift
     j = 0
-    for i in holidayIndex:
-        holidayDriverShift[i] = drivers[j]
-        j = (j+1) % len(drivers)
-
-    # assign normal driver shift
-    # remove replace driver from drivers
-    drivers.remove(replace_driver)
+    for i in yearHolidayIndex:
+        yearHolidayDriverShift[i] = hDrivers[j]
+        j = (j+1) % len(hDrivers)
     
+    holidayDriverShift = yearHolidayDriverShift[numStartMonth-1:numEndMonth]
+
+
+    # assign driver shift
+
     j = 0
-    for i in range(numDay):
-        if dayShift[i] == "":
-            normDriverShift[i] = drivers[j]
+    for i in range(0,numDay):
+        if i not in yearHolidayIndex:
+            yearNormDriverShift[i] = drivers[j]
             j = (j+1) % len(drivers)
 
+    # assign book shift
+    # swap driver each week by once
+    j = 0
+    while j < numDay:
+        for d in drivers: # need to be replaced
+            while j < numDay and j in yearHolidayIndex:
+                j += 1
+            while j < numDay and yearNormDriverShift[j] != d:
+                j += 1
+            if j >= numDay:
+                break
+            yearBookShift[j] = yearNormDriverShift[j]
+            yearNormDriverShift[j] = replace_driver
+            if dayNameInYear[j] == 'ศุกร์':
+                continue
+            while j < numDay and j not in yearHolidayIndex:
+                j += 1
+
+    # choose only in selected month
+    bookShift = yearBookShift[numStartMonth-1:numEndMonth]
+    normDriverShift = yearNormDriverShift[numStartMonth-1:numEndMonth]
     
-    # swap one of the normak driver with replace driver to do another task
-    # one job per week
-    # 3 -> 11 -> 19 -> 27 -> 30 ( start new week)
-    # find the first non holiday day
-    for i in range(numDay):
-        if dayShift[i] == "":
-            break
-    # swap driver in the next 7 days and iterate it
-    while i <= numDay:
-        bookShift[i] = normDriverShift[i]
-        normDriverShift[i] = replace_driver
-        if dayOfWeek[i] == "ศุกร์":
-            i = (i + 3)
-        else:
-            i = (i + 8)
+
 
     # create output dataframe
-    output = pd.DataFrame({'วันที่': days, 'วัน': dayOfWeek,'ส่งหนังสือ': bookShift, 'เวรขับรถเย็น': normDriverShift, 'เวรขับรถวันหยุด': holidayDriverShift, 'เวรกลางวัน': dayShift, 'เวรกลางคืน': nightShift})
+    output = pd.DataFrame({'วันที่': days[numStartMonth-1:numEndMonth], 'วัน': dayNameInMonth,'ส่งหนังสือ': bookShift, 'เวรขับรถเย็น': normDriverShift, 'เวรขับรถวันหยุด': holidayDriverShift, 'เวรกลางวัน': dayShift, 'เวรกลางคืน': nightShift})
 
     # save to excel
     header_format = workbook.add_format({'bold': True, 'font_size': 18, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#D9D9D9'})
@@ -135,7 +171,11 @@ def genSchedule(df, month,monthStr, year):
             worksheet.write(row,col+6, "", cell_format)
         worksheet.write(row,col+7, r['เวรกลางคืน'], cell_format)
         row += 1
-
-    workbook.close()
+        try:
+            workbook.close()
+            return 0
+        except:
+            return 1
+    
     
     

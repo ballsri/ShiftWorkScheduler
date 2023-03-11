@@ -1,25 +1,32 @@
 from tkinter import *
 from tkinter import filedialog, messagebox
 from PIL import ImageTk, Image
-import os
+import os, sys
 import pandas as pd
 import datetime
 from genSchedule import genSchedule as gs
 
-def rcpath(rel_path):
-    return os.path.join(os.getcwd(), rel_path)
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 root = Tk()
 root.title("ShiftWorkScheduler")
 # root.geometry("640x480")
 root.resizable(False, False)
-root.iconphoto(True, ImageTk.PhotoImage(Image.open(rcpath("icon.jpg"))))
+root.iconphoto(True, ImageTk.PhotoImage(Image.open(resource_path("icon.jpg"))))
 
 # Global variables
 root.filename = ""
 df = pd.DataFrame()
 month = 0
-curr_year = datetime.datetime.now().year
+sel_year = datetime.datetime.now().year
 
 # Create a frame
 frame = Frame(root)
@@ -32,8 +39,11 @@ label_frame.grid(row = 0, column = 0, padx = 10, pady = 10)
 label = Label(label_frame, text = "โปรแกรมจัดตารางเวรจากไฟล์ Excel", font = ("Arial", 20))
 label.grid(row = 0, column = 0, padx = 10, pady = 10)
 
-year_label = Label(label_frame, text = "ปี : " + str(curr_year), font = ("Arial", 20))
+year_label = Label(label_frame, text = "ปี : " + str(sel_year), font = ("Arial", 20))
 year_label.grid(row = 0, column = 1, padx = 10, pady = 10)
+
+year_select = Spinbox(label_frame, from_ = sel_year, to = 2026, width = 5, font = ("Arial", 20), command = lambda: year_label.config(text = "ปี : " + str(year_select.get())))
+year_select.grid(row = 0, column = 2, padx = 10, pady = 10)
 
 # Create an section
 input_frame = Frame(frame)
@@ -49,15 +59,11 @@ def openExcel():
     global df
     try:
         root.filename = filedialog.askopenfilename( title = "Select an Excel File", filetypes = (("Excel Worksheet", "*.xlsx"), ("Excel 97-2003 Worksheet", "*.xls")))
-        df = pd.read_excel(root.filename)
-        df.dropna(axis = 1)
-        # print(df)
+        df = pd.read_excel(root.filename, sheet_name = "Sheet1")
         input_btn.config(text = "นำเข้าข้อมูลเรียบร้อยแล้ว", state= DISABLED)
     except:
         messagebox.showinfo("Error", "โปรดเลือกไฟล์ Excel หรือ ปิด Excel ก่อนนำเข้าข้อมูล")
     
-
-
 input_label = Label(lFrame, text = "กดปุ่มเพื่อนำเข้าข้อมูลจาก Excel", font = ("Arial", 20))
 input_label.grid(row = 0, column = 0, padx = 10, pady = 10)
 
@@ -126,8 +132,14 @@ def genSchedule():
     elif month == 0:
         messagebox.showinfo("Error", "โปรดเลือกเดือน")
     else:
-        gs(df, month,months[month-1], curr_year)
-        messagebox.showinfo("Success", "สร้างตารางเวรเรียบร้อยแล้ว")
+        
+        status = gs(df, month,months[month-1], sel_year)
+        if status == 0:
+            messagebox.showinfo("Success", "สร้างตารางเวรเรียบร้อยแล้ว")
+        elif status == 1:
+            messagebox.showinfo("Error", "ปิด Excel ก่อนสร้างตารางเวร")
+        elif status == 2:
+            messagebox.showinfo("Error", "โปรดเลือกไฟล์ให้ถูกต้อง")
 
 submit_label = Label(lFrame, text = "กดปุ่มเพื่อสร้างตารางเวร", font = ("Arial", 20))
 submit_label.grid(row = 3, column = 0, padx = 10, pady = 10)
