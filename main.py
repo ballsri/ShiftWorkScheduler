@@ -26,7 +26,7 @@ root.iconphoto(True, ImageTk.PhotoImage(Image.open(resource_path("icon.jpg"))))
 root.filename = ""
 df = pd.DataFrame()
 month = 0
-sel_year = datetime.datetime.now().year
+sel_year = 2023
 
 # Create a frame
 frame = Frame(root)
@@ -39,11 +39,11 @@ label_frame.grid(row = 0, column = 0, padx = 10, pady = 10)
 label = Label(label_frame, text = "โปรแกรมจัดตารางเวรจากไฟล์ Excel", font = ("Arial", 20))
 label.grid(row = 0, column = 0, padx = 10, pady = 10)
 
-year_label = Label(label_frame, text = "ปี : " + str(sel_year), font = ("Arial", 20))
+year_label = Label(label_frame, text = "อัพเดทปี : 2023", font = ("Arial", 20))
 year_label.grid(row = 0, column = 1, padx = 10, pady = 10)
 
-year_select = Spinbox(label_frame, from_ = sel_year, to = 2026, width = 5, font = ("Arial", 20), command = lambda: year_label.config(text = "ปี : " + str(year_select.get())))
-year_select.grid(row = 0, column = 2, padx = 10, pady = 10)
+# year_select = Spinbox(label_frame, from_ = sel_year, to = 2026, width = 5, font = ("Arial", 20) )
+# year_select.grid(row = 0, column = 2, padx = 10, pady = 10)
 
 # Create an section
 input_frame = Frame(frame)
@@ -133,7 +133,7 @@ def genSchedule():
         messagebox.showinfo("Error", "โปรดเลือกเดือน")
     else:
         
-        status = gs(df, month,months[month-1], sel_year)
+        status = gs(df, month,months[month-1], int(root.filename[-9:-5]))
         if status == 0:
             messagebox.showinfo("Success", "สร้างตารางเวรเรียบร้อยแล้ว")
         elif status == 1:

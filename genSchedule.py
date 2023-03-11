@@ -17,13 +17,14 @@ def genSchedule(df, month,monthStr, year):
         hDrivers = df['คนขับวันหยุด'].tolist()
         hDrivers = [x for x in hDrivers if str(x) != 'nan']
         dayShifters =list(df[['หัวหน้าเวรกลางวัน', 'ลูกเวรกลางวัน']].itertuples(index=False, name=None))
+        dayShifters = [(x,y) for x,y in dayShifters if str(x) != 'nan' and str(y) != 'nan']
         nightShifters = df['เวรกลางคืน'].tolist()
         nightShifters = [x for x in nightShifters if str(x) != 'nan']
     except:
         return 2
 
     numDay = pd.Timestamp(year, 12, 31).dayofyear
-    numMonth = calendar.monthrange(year, month)[1] +1
+   
     
     days = []
     
@@ -52,6 +53,8 @@ def genSchedule(df, month,monthStr, year):
     numStartMonth = pd.Timestamp(year, month, 1).dayofyear
     numEndMonth = pd.Timestamp(year, month, numMonth).dayofyear
     dayNameInMonth = dayNameInYear[numStartMonth-1:numEndMonth]
+
+
 
 
     ## CRITICAL PART ##
@@ -104,6 +107,13 @@ def genSchedule(df, month,monthStr, year):
 
     # assign book shift
     # swap driver each week by once
+
+    ## if there're need to continue the sequence of replacing drivers from last year ##
+        # if year != 2023:
+        #     last_replaced = drivers.index(df['แทนล่าสุด'].tolist()[0])
+        #     drivers = drivers[last_replaced+1:] + drivers[:last_replaced+1]
+
+
     j = 0
     while j < numDay:
         for d in drivers: # need to be replaced
@@ -123,12 +133,11 @@ def genSchedule(df, month,monthStr, year):
     # choose only in selected month
     bookShift = yearBookShift[numStartMonth-1:numEndMonth]
     normDriverShift = yearNormDriverShift[numStartMonth-1:numEndMonth]
-    
-
 
     # create output dataframe
     output = pd.DataFrame({'วันที่': days[numStartMonth-1:numEndMonth], 'วัน': dayNameInMonth,'ส่งหนังสือ': bookShift, 'เวรขับรถเย็น': normDriverShift, 'เวรขับรถวันหยุด': holidayDriverShift, 'เวรกลางวัน': dayShift, 'เวรกลางคืน': nightShift})
 
+    # print(output)
     # save to excel
     header_format = workbook.add_format({'bold': True, 'font_size': 18, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#D9D9D9'})
     col_format = workbook.add_format({ 'border': 1, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#80aaff'})
@@ -171,11 +180,11 @@ def genSchedule(df, month,monthStr, year):
             worksheet.write(row,col+6, "", cell_format)
         worksheet.write(row,col+7, r['เวรกลางคืน'], cell_format)
         row += 1
-        try:
-            workbook.close()
-            return 0
-        except:
-            return 1
+    try:
+        workbook.close()
+        return 0
+    except:
+        return 1
     
     
     
