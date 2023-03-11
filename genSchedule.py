@@ -115,20 +115,32 @@ def genSchedule(df, month,monthStr, year):
 
 
     j = 0
+    pointer = 0
+    if year != 2023:
+        last_replaced = drivers.index(df['แทนล่าสุด'].tolist()[0])
+        pointer = (last_replaced+1) % len(drivers)
+        
     while j < numDay:
-        for d in drivers: # need to be replaced
-            while j < numDay and j in yearHolidayIndex:
-                j += 1
-            while j < numDay and yearNormDriverShift[j] != d:
-                j += 1
-            if j >= numDay:
+        d = drivers[pointer] # need to be replaced
+        pointer = (pointer+1) % len(drivers)
+        while j < numDay and j in yearHolidayIndex:
+            j += 1
+
+        tempJ = j
+        while j < numDay and yearNormDriverShift[j] != d:
+            j += 1
+            if j < numDay and 'เสาร์' in dayNameInYear[j]:
+                j = tempJ
+                pointer = (drivers.index(yearNormDriverShift[j]) + 1 ) % len(drivers)
                 break
-            yearBookShift[j] = yearNormDriverShift[j]
-            yearNormDriverShift[j] = replace_driver
-            if dayNameInYear[j] == 'ศุกร์':
-                continue
-            while j < numDay and j not in yearHolidayIndex:
-                j += 1
+
+
+        if j >= numDay:
+            break
+        yearBookShift[j] = yearNormDriverShift[j]
+        yearNormDriverShift[j] = replace_driver
+        while j < numDay and  'เสาร์' not in dayNameInYear[j]:
+            j += 1
 
     # choose only in selected month
     bookShift = yearBookShift[numStartMonth-1:numEndMonth]
