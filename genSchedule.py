@@ -126,17 +126,13 @@ def genSchedule(df, month,monthStr, year):
         while j < numDay and j in yearHolidayIndex:
             j += 1
 
-        tempJ = j
+        
         while j < numDay and yearNormDriverShift[j] != d:
             j += 1
-            if j < numDay and 'เสาร์' in dayNameInYear[j]:
-                j = tempJ
-                pointer = (drivers.index(yearNormDriverShift[j]) + 1 ) % len(drivers)
-                break
-
-
+           
         if j >= numDay:
             break
+        
         yearBookShift[j] = yearNormDriverShift[j]
         yearNormDriverShift[j] = replace_driver
         while j < numDay and  'เสาร์' not in dayNameInYear[j]:
